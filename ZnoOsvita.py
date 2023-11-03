@@ -10,17 +10,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 url = 'https://zno.osvita.ua/ukraine-history/tag-u_skladi_rechi_pospolitoyi_v_xvii_st/'
+service = Service(executable_path='C:\Program Files (x86)\Chromium\chromedriver.exe')
 
 Hspent = int(input("Please enter hours spent: "))
 Mspent = int(input("Please enter minutes spent: "))
 PercInput = int(input("Please enter the goal: "))
 
-def closeAd():
-    try:
-        x = driver.find_element(By.XPATH, f'//*[@id="container"]')
-        x.find_element(By.ID, 'close').click()
-    except NoSuchElementException:
-        return
+
 
 def RepNum(Hspent, Mspent, score):
     x = driver.find_element(By.XPATH, f'//*[@id="wrap"]/div/div[1]/div[1]/strong')
@@ -52,7 +48,7 @@ def IsMultiQ(id):
 
 
 
-service = Service(executable_path='C:\Program Files (x86)\Chromium\chromedriver.exe')
+
 options = webdriver.ChromeOptions()
 driver = webdriver.Chrome(service=service, options = options)
 
@@ -64,7 +60,7 @@ question_count = len(question_elements)
 
 if question_count > 0:
     last_question = question_elements[-1]
-    closeAd()
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 3);")
     last_question.click()
 
 
@@ -83,7 +79,6 @@ print(NeededScore)
 
 
 Qnumber = 1
-closeAd()
 for i in range(question_count):
     Type = IsMultiQ(Qnumber)
     ranNumber = random.randint(1, 100)
