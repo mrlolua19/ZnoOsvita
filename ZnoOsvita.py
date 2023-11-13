@@ -1,5 +1,5 @@
 import time
-import random
+import fastrand
 import math
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -14,7 +14,14 @@ service = Service(executable_path='C:\Program Files (x86)\Chromium\chromedriver.
 
 Hspent = int(input("Please enter hours spent: "))
 Mspent = int(input("Please enter minutes spent: "))
-PercInput = int(input("Please enter the goal: "))
+PercInput = int(input("Please enter the goal in percents: "))
+
+cor = False
+while cor == False:
+    if  100 >= PercInput >= 0:
+        cor = True
+    else:
+        PercInput = int(input("Wrong percentage, please enter the correct goal: "))
 
 
 
@@ -33,7 +40,7 @@ def RepNum(Hspent, Mspent, score):
         driver.execute_script("arguments[0].textContent = arguments[1];", x, f'{Mspent} хв.')
 
 
-def IsMultiQ(id):
+def IsMultiQ(id): ## 1/0 for single choice, 2/1/0 for triple choice, 4/2/0 for matching
     q = driver.find_element(By.XPATH, f'//*[@id="q{id}"]')
     try:
         q.find_element(By.PARTIAL_LINK_TEXT, 'Завдання на встановлення')
@@ -50,6 +57,7 @@ def IsMultiQ(id):
 
 
 options = webdriver.ChromeOptions()
+options.add_experimental_option("excludeSwitches", ['enable-automation'])
 driver = webdriver.Chrome(service=service, options = options)
 
 
@@ -70,25 +78,22 @@ driver.find_element(By.XPATH, f'//*[@id="q_form_{question_count}"]/div[7]/div[2]
 questions_container = driver.find_element(By.ID, 'tasks-numbers')
 question_elements = questions_container.find_elements(By.CSS_SELECTOR, 'span.number')
 
-time.sleep(3)
 
 totCorScore = 0
-FullScore = int(driver.find_element(By.XPATH, f'//*[@id="wrap"]/div/div[1]/div[1]/strong').text)
-NeededScore = math.ceil((PercInput/100)*FullScore)
-print(NeededScore)
+FullScore = int(WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, f'//*[@id="wrap"]/div/div[1]/div[1]/strong'))).text)
+NeededScore = math.ceil((PercInput/100)*FullScore) - 1
 
 
 Qnumber = 1
 for i in range(question_count):
     Type = IsMultiQ(Qnumber)
-    ranNumber = random.randint(1, 100)
-    print(Qnumber)
+    ranNumber = fastrand.pcg32randint(1, 100)
     question_elements = driver.find_elements(By.CSS_SELECTOR, 'span.number')
     question_element = question_elements[i]
     if Type > 0:
         if ranNumber > 80:
             driver.execute_script("arguments[0].classList.add('bad');", question_element)
-        elif 50 < ranNumber and ranNumber < 70:
+        elif 50 < ranNumber < 70:
             driver.execute_script("arguments[0].classList.add('good');", question_element)
             totCorScore += Type
         else:
@@ -103,52 +108,64 @@ for i in range(question_count):
     
     question_element = questions_container.find_element(By.CSS_SELECTOR, 'span.number')
     Qnumber += 1
-    time.sleep(0.01)
+    time.sleep(0.01) ## to look smooth xD
 
 while totCorScore != NeededScore:
     if totCorScore < NeededScore:
-        QNumber = random.randint(1, len(question_elements))
-        ranNumber2 = random.randint(1, 10)
-        question_element = question_elements[QNumber-1]
-        class_name = question_element.get_attribute('class')
-        Type = IsMultiQ(QNumber)
-        if 'bad' in class_name:
-            driver.execute_script("arguments[0].classList.remove('bad');", question_element)
-            if Type < 1:
-                driver.execute_script("arguments[0].classList.add('super');", question_element)
-                totCorScore += 1
-            elif QNumber < 3:
-                driver.execute_script("arguments[0].classList.add('good');", question_element)
-                totCorScore += Type
-            else:
+        while (totCorScore < NeededScore):
+            QNumber = fastrand.pcg32randint(1, len(question_elements))
+            question_element = question_elements[QNumber-1]
+            class_name = question_element.get_attribute('class')
+            while 'super' in class_name:
+                QNumber = fastrand.pcg32randint(1, len(question_elements))
+                question_element = question_elements[QNumber-1]
+                class_name = question_element.get_attribute('class')
+            Type = IsMultiQ(QNumber)
+            if 'bad' in class_name:
+                driver.execute_script("arguments[0].classList.remove('bad');", question_element)
+                if Type < 1:
+                    driver.execute_script("arguments[0].classList.add('super');", question_element)
+                    totCorScore += 1
+                elif QNumber < 3:
+                    driver.execute_script("arguments[0].classList.add('good');", question_element)
+                    totCorScore += Type
+                else:
+                    driver.execute_script("arguments[0].classList.add('super');", question_element)
+                    totCorScore += 2*Type
+            if 'good' in class_name:
+                driver.execute_script("arguments[0].classList.remove('good');", question_element)
                 driver.execute_script("arguments[0].classList.add('super');", question_element)
                 totCorScore += 2*Type
-        if 'good' in class_name:
-            driver.execute_script("arguments[0].classList.remove('good');", question_element)
-            driver.execute_script("arguments[0].classList.add('super');", question_element)
-            totCorScore += 2*Type
+        if totCorScore == NeededScore:
+                break
 
     if totCorScore > NeededScore:
-        QNumber = random.randint(1, len(question_elements))
-        ranNumber2 = random.randint(1, 10)
-        question_element = question_elements[QNumber-1]
-        class_name = question_element.get_attribute('class')
-        Type = IsMultiQ(QNumber)
-        if 'good' in class_name:
-            driver.execute_script("arguments[0].classList.remove('good');", question_element)
-            driver.execute_script("arguments[0].classList.add('bad');", question_element)
-            totCorScore -= Type
-        elif 'super' in class_name:
-            driver.execute_script("arguments[0].classList.remove('super');", question_element)
-            if Type < 1:
+        while (totCorScore > NeededScore):
+            QNumber = fastrand.pcg32randint(1, len(question_elements))
+            question_element = question_elements[QNumber-1]
+            class_name = question_element.get_attribute('class')
+            while 'bad' in class_name:
+                QNumber = fastrand.pcg32randint(1, len(question_elements))
+                question_element = question_elements[QNumber-1]
+                class_name = question_element.get_attribute('class')
+            Type = IsMultiQ(QNumber)
+            if 'good' in class_name:
+                driver.execute_script("arguments[0].classList.remove('good');", question_element)
                 driver.execute_script("arguments[0].classList.add('bad');", question_element)
-                totCorScore -= 1
-            elif QNumber < 3:
-                driver.execute_script("arguments[0].classList.add('good');", question_element)
                 totCorScore -= Type
-            else:
-                driver.execute_script("arguments[0].classList.add('bad');", question_element)
-                totCorScore -= 2*Type
+            elif 'super' in class_name:
+                driver.execute_script("arguments[0].classList.remove('super');", question_element)
+                if Type < 1:
+                    driver.execute_script("arguments[0].classList.add('bad');", question_element)
+                    totCorScore -= 1
+                elif QNumber < 3:
+                    driver.execute_script("arguments[0].classList.add('good');", question_element)
+                    totCorScore -= Type
+                else:
+                    driver.execute_script("arguments[0].classList.add('bad');", question_element)
+                    totCorScore -= 2*Type
+            if totCorScore == NeededScore:
+                break
 
 
 
@@ -159,6 +176,3 @@ RepNum(Hspent, Mspent, totCorScore)
 
 time.sleep(38888888)
 driver.quit()
-
-
-
