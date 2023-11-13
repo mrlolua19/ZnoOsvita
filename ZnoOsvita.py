@@ -15,11 +15,9 @@ service = Service(executable_path='C:\Program Files (x86)\Chromium\chromedriver.
 Hspent = int(input("Please enter hours spent: "))
 Mspent = int(input("Please enter minutes spent: "))
 PercInput = int(input("Please enter the goal in percents: "))
-
-cor = False
-while cor == False:
+while True:
     if  100 >= PercInput >= 0:
-        cor = True
+        break
     else:
         PercInput = int(input("Wrong percentage, please enter the correct goal: "))
 
